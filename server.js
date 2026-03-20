@@ -117,7 +117,10 @@ function sendJson(res, statusCode, payload) {
 
 function resolveSafePath(urlPath) {
   const decoded = decodeURIComponent(urlPath.split('?')[0]);
-  const normalizedPath = decoded === '/' ? '/test1.html' : decoded;
+  let normalizedPath = decoded === '/' ? '/test1.html' : decoded;
+  if (normalizedPath === '/admin' || normalizedPath === '/admin/') {
+    normalizedPath = '/admin/dist/index.html';
+  }
   const fullPath = path.join(ROOT_DIR, normalizedPath);
   const safePath = path.normalize(fullPath);
   if (!safePath.startsWith(path.normalize(ROOT_DIR))) return null;
