@@ -148,16 +148,22 @@
 
     async function uploadLocalImage(file) {
       const contentBase64 = await fileToBase64(file);
-      const res = await fetch('/api/hero-upload', {
+      const apiUrl = new URL('/api/hero-upload', window.location.origin).toString();
+      const res = await fetch(apiUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           filename: file.name,
-          mimeType: file.type,
+          mimeType: file.type || 'application/octet-stream',
           contentBase64
         })
       });
-      const result = await res.json();
+      let result = {};
+      try {
+        result = await res.json();
+      } catch {
+        throw new Error(`업로드 응답 파싱 실패 (HTTP ${res.status})`);
+      }
       if (!res.ok) throw new Error(result?.message || '업로드 실패');
       return result.url;
     }

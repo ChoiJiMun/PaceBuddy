@@ -1,12 +1,15 @@
 const http = require('http');
 const fs = require('fs/promises');
 const path = require('path');
+const { put, list } = require('@vercel/blob');
 
 const PORT = process.env.PORT || 3000;
 const ROOT_DIR = __dirname;
 const DATA_DIR = path.join(ROOT_DIR, 'data');
 const SLIDES_FILE = path.join(DATA_DIR, 'hero-slides.json');
 const UPLOADS_DIR = path.join(ROOT_DIR, 'uploads');
+const BLOB_ENABLED = Boolean(process.env.BLOB_READ_WRITE_TOKEN);
+const HERO_SLIDES_BLOB_PATH = 'config/hero-slides.json';
 
 const MIME_TYPES = {
   '.html': 'text/html; charset=utf-8',
@@ -27,6 +30,7 @@ const DEFAULT_SLIDES = [
 ];
 
 async function ensureDataFile() {
+  if (BLOB_ENABLED) return;
   await fs.mkdir(DATA_DIR, { recursive: true });
   await fs.mkdir(UPLOADS_DIR, { recursive: true });
   try {
@@ -38,6 +42,47 @@ async function ensureDataFile() {
       'utf8'
     );
   }
+}
+
+async function readSlidesFromBlob() {
+  const { blobs } = await list({ prefix: HERO_SLIDES_BLOB_PATH, limit: 10 });
+  const target = blobs
+    .filter((blob) => blob.pathname === HERO_SLIDES_BLOB_PATH)
+    .sort((a, b) => new Date(b.uploadedAt) - new Date(a.uploadedAt))[0];
+
+  if (!target) {
+    const created = await writeSlidesToBlob(DEFAULT_SLIDES);
+    return created;
+  }
+
+  const response = await fetch(target.url);
+  if (!response.ok) return { slides: DEFAULT_SLIDES };
+  const parsed = await response.json();
+  if (!Array.isArray(parsed?.slides)) return { slides: DEFAULT_SLIDES };
+  return {
+    slides: parsed.slides.filter(
+      (url) => typeof url === 'string' && url.trim().length > 0
+    )
+  };
+}
+
+async function writeSlidesToBlob(slides) {
+  const sanitized = slides
+    .filter((url) => typeof url === 'string')
+    .map((url) => url.trim())
+    .filter((url) => url.length > 0);
+
+  if (sanitized.length === 0) {
+    throw new Error('슬라이드 이미지는 최소 1개 이상 필요합니다.');
+  }
+
+  await put(HERO_SLIDES_BLOB_PATH, JSON.stringify({ slides: sanitized }, null, 2), {
+    access: 'public',
+    addRandomSuffix: false,
+    allowOverwrite: true,
+    contentType: 'application/json; charset=utf-8'
+  });
+  return { slides: sanitized };
 }
 
 function safeFilename(name = 'image') {
@@ -73,14 +118,25 @@ async function saveUploadedImage({ filename, mimeType, contentBase64 }) {
   const ext = originalExt || extensionFromMime(mimeType) || '.bin';
   const baseName = path.basename(original, originalExt || undefined) || 'upload';
   const savedName = `${Date.now()}-${baseName}${ext}`;
-  const savePath = path.join(UPLOADS_DIR, savedName);
-
   const buffer = Buffer.from(contentBase64, 'base64');
+  if (BLOB_ENABLED) {
+    const blob = await put(`hero/${savedName}`, buffer, {
+      access: 'public',
+      contentType: mimeType
+    });
+    return { url: blob.url };
+  }
+
+  const savePath = path.join(UPLOADS_DIR, savedName);
   await fs.writeFile(savePath, buffer);
   return { url: `/uploads/${savedName}` };
 }
 
 async function readSlides() {
+  if (BLOB_ENABLED) {
+    return readSlidesFromBlob();
+  }
+
   await ensureDataFile();
   const raw = await fs.readFile(SLIDES_FILE, 'utf8');
   const parsed = JSON.parse(raw);
@@ -93,6 +149,10 @@ async function readSlides() {
 }
 
 async function writeSlides(slides) {
+  if (BLOB_ENABLED) {
+    return writeSlidesToBlob(slides);
+  }
+
   await ensureDataFile();
   const sanitized = slides
     .filter((url) => typeof url === 'string')
@@ -141,14 +201,25 @@ function parseRequestBody(req) {
   });
 }
 
-const server = http.createServer(async (req, res) => {
+async function requestHandler(req, res) {
   try {
-    if (req.url === '/api/hero-slides' && req.method === 'GET') {
+    const parsedUrl = new URL(req.url || '/', 'http://localhost');
+    const requestPath = parsedUrl.searchParams.get('path') || parsedUrl.pathname;
+    const isHeroSlidesApi =
+      requestPath === '/api/hero-slides' ||
+      requestPath === '/hero-slides' ||
+      requestPath.endsWith('/api/hero-slides');
+    const isHeroUploadApi =
+      requestPath === '/api/hero-upload' ||
+      requestPath === '/hero-upload' ||
+      requestPath.endsWith('/api/hero-upload');
+
+    if (isHeroSlidesApi && req.method === 'GET') {
       const data = await readSlides();
       return sendJson(res, 200, data);
     }
 
-    if (req.url === '/api/hero-slides' && req.method === 'PUT') {
+    if (isHeroSlidesApi && req.method === 'PUT') {
       const body = await parseRequestBody(req);
       const parsed = JSON.parse(body || '{}');
       if (!Array.isArray(parsed?.slides)) {
@@ -158,7 +229,7 @@ const server = http.createServer(async (req, res) => {
       return sendJson(res, 200, { message: '저장되었습니다.', ...saved });
     }
 
-    if (req.url === '/api/hero-upload' && req.method === 'POST') {
+    if (isHeroUploadApi && req.method === 'POST') {
       const body = await parseRequestBody(req);
       const parsed = JSON.parse(body || '{}');
       const uploaded = await saveUploadedImage({
@@ -169,7 +240,7 @@ const server = http.createServer(async (req, res) => {
       return sendJson(res, 200, uploaded);
     }
 
-    const filePath = resolveSafePath(req.url || '/');
+    const filePath = resolveSafePath(requestPath || '/');
     if (!filePath) {
       res.writeHead(403, { 'Content-Type': 'text/plain; charset=utf-8' });
       return res.end('Forbidden');
@@ -190,12 +261,22 @@ const server = http.createServer(async (req, res) => {
     }
     return sendJson(res, 500, { message: error.message || '서버 오류' });
   }
-});
+}
 
-ensureDataFile().then(() => {
-  server.listen(PORT, () => {
-    console.log(`Server running at http://localhost:${PORT}`);
-    console.log('메인 페이지: /test1.html');
-    console.log('어드민 페이지: /admin.html');
+module.exports = requestHandler;
+
+if (require.main === module) {
+  const server = http.createServer(requestHandler);
+  ensureDataFile().then(() => {
+    server.listen(PORT, () => {
+      console.log(`Server running at http://localhost:${PORT}`);
+      console.log('메인 페이지: /test1.html');
+      console.log('어드민 페이지: /admin.html');
+      if (BLOB_ENABLED) {
+        console.log('저장 모드: Vercel Blob');
+      } else {
+        console.log('저장 모드: Local file system');
+      }
+    });
   });
-});
+}
