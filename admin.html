@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hero 캐러셀 관리</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #f4f7fb;
+      color: #0f172a;
+      padding: 32px 16px;
+    }
+    .container {
+      max-width: 840px;
+      margin: 0 auto;
+      background: #fff;
+      border-radius: 14px;
+      box-shadow: 0 8px 36px rgba(15, 23, 42, 0.08);
+      padding: 28px;
+    }
+    h1 {
+      margin: 0 0 8px;
+      font-size: 24px;
+    }
+    .desc {
+      margin: 0 0 24px;
+      color: #475569;
+      font-size: 14px;
+    }
+    .top-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 14px;
+    }
+    .row {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 10px;
+      align-items: center;
+    }
+    .row input {
+      flex: 1;
+      height: 40px;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      padding: 0 12px;
+      font-size: 14px;
+    }
+    .row button {
+      height: 40px;
+      border: none;
+      border-radius: 8px;
+      padding: 0 14px;
+      cursor: pointer;
+      font-size: 13px;
+    }
+    .btn-delete { background: #ef4444; color: #fff; }
+    .btn-upload { background: #0369a1; color: #fff; }
+    .controls {
+      margin-top: 18px;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .btn {
+      height: 40px;
+      border: none;
+      border-radius: 8px;
+      padding: 0 16px;
+      cursor: pointer;
+      font-size: 13px;
+    }
+    .btn-add { background: #1d4ed8; color: #fff; }
+    .btn-save { background: #0f766e; color: #fff; }
+    .btn-open { background: #334155; color: #fff; text-decoration: none; display: inline-flex; align-items: center; }
+    .status {
+      margin-top: 14px;
+      min-height: 20px;
+      font-size: 13px;
+      color: #475569;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Hero 캐러셀 관리</h1>
+    <p class="desc">이미지 URL을 수정하고 저장하면 메인 `test1.html` 상단 캐러셀에 바로 반영됩니다.</p>
+
+    <div class="top-actions">
+      <button class="btn btn-upload" id="uploadBtn">로컬 파일 업로드 추가</button>
+      <input type="file" id="filePicker" accept="image/*" style="display:none;">
+    </div>
+
+    <div id="rows"></div>
+
+    <div class="controls">
+      <button class="btn btn-add" id="addBtn">이미지 행 추가</button>
+      <button class="btn btn-save" id="saveBtn">저장</button>
+      <a class="btn btn-open" href="/test1.html" target="_blank" rel="noopener noreferrer">메인 페이지 열기</a>
+    </div>
+
+    <div class="status" id="status"></div>
+  </div>
+
+  <script>
+    const rowsEl = document.getElementById('rows');
+    const addBtn = document.getElementById('addBtn');
+    const saveBtn = document.getElementById('saveBtn');
+    const statusEl = document.getElementById('status');
+    const uploadBtn = document.getElementById('uploadBtn');
+    const filePicker = document.getElementById('filePicker');
+
+    function setStatus(message, isError = false) {
+      statusEl.textContent = message;
+      statusEl.style.color = isError ? '#dc2626' : '#475569';
+    }
+
+    function createRow(value = '') {
+      const row = document.createElement('div');
+      row.className = 'row';
+      row.innerHTML = `
+        <input type="text" placeholder="https://... 이미지 URL" value="${value}">
+        <button type="button" class="btn-delete">삭제</button>
+      `;
+      row.querySelector('.btn-delete').addEventListener('click', () => {
+        row.remove();
+        if (rowsEl.children.length === 0) createRow('');
+      });
+      rowsEl.appendChild(row);
+    }
+
+    function fileToBase64(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const result = String(reader.result || '');
+          const base64 = result.includes(',') ? result.split(',')[1] : result;
+          resolve(base64);
+        };
+        reader.onerror = () => reject(new Error('파일 읽기 실패'));
+        reader.readAsDataURL(file);
+      });
+    }
+
+    async function uploadLocalImage(file) {
+      const contentBase64 = await fileToBase64(file);
+      const res = await fetch('/api/hero-upload', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          filename: file.name,
+          mimeType: file.type,
+          contentBase64
+        })
+      });
+      const result = await res.json();
+      if (!res.ok) throw new Error(result?.message || '업로드 실패');
+      return result.url;
+    }
+
+    async function loadSlides() {
+      try {
+        const res = await fetch('/api/hero-slides');
+        if (!res.ok) throw new Error('불러오기 실패');
+        const data = await res.json();
+        rowsEl.innerHTML = '';
+        const slides = Array.isArray(data?.slides) ? data.slides : [];
+        if (slides.length === 0) createRow('');
+        slides.forEach((url) => createRow(url));
+        setStatus('슬라이드 데이터를 불러왔습니다.');
+      } catch (error) {
+        setStatus(`불러오기 오류: ${error.message}`, true);
+        if (rowsEl.children.length === 0) createRow('');
+      }
+    }
+
+    async function saveSlides() {
+      const inputs = Array.from(rowsEl.querySelectorAll('input'));
+      const slides = inputs.map((input) => input.value.trim()).filter(Boolean);
+      if (slides.length === 0) {
+        setStatus('최소 1개의 이미지 URL이 필요합니다.', true);
+        return;
+      }
+      try {
+        const res = await fetch('/api/hero-slides', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ slides })
+        });
+        const result = await res.json();
+        if (!res.ok) throw new Error(result?.message || '저장 실패');
+        setStatus('저장 완료! 메인 페이지를 새로고침하면 반영됩니다.');
+      } catch (error) {
+        setStatus(`저장 오류: ${error.message}`, true);
+      }
+    }
+
+    addBtn.addEventListener('click', () => createRow(''));
+    saveBtn.addEventListener('click', saveSlides);
+    uploadBtn.addEventListener('click', () => filePicker.click());
+    filePicker.addEventListener('change', async (event) => {
+      const file = event.target.files?.[0];
+      if (!file) return;
+      try {
+        setStatus('업로드 중...');
+        const url = await uploadLocalImage(file);
+        createRow(url);
+        setStatus('업로드 완료! 저장 버튼을 눌러 반영하세요.');
+      } catch (error) {
+        setStatus(`업로드 오류: ${error.message}`, true);
+      } finally {
+        filePicker.value = '';
+      }
+    });
+    loadSlides();
+  </script>
+</body>
+</html>
