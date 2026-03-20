@@ -37,6 +37,8 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
+    max-width: 1280px;
+    margin: 0 auto;
     padding: 0 60px;
     height: 64px;
     background: rgba(10, 34, 64, 0.85);
@@ -67,6 +69,58 @@
     display: flex;
     gap: 36px;
     list-style: none;
+  }
+
+  .mobile-menu-btn {
+    display: none;
+    background: none;
+    border: none;
+    color: white;
+    font-size: 24px;
+    cursor: pointer;
+    padding: 8px;
+  }
+
+  .mobile-menu {
+    position: fixed;
+    top: 64px;
+    left: 0;
+    right: 0;
+    background: rgba(10, 34, 64, 0.95);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+    transform: translateY(-100%);
+    transition: transform 0.3s ease;
+    z-index: 999;
+  }
+
+  .mobile-menu.active {
+    transform: translateY(0);
+  }
+
+  .mobile-nav-links {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    list-style: none;
+    padding: 0;
+  }
+
+  .mobile-nav-links a {
+    display: block;
+    padding: 20px 60px;
+    color: rgba(255,255,255,0.82);
+    text-decoration: none;
+    font-size: 16px;
+    font-weight: 400;
+    letter-spacing: 0.3px;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+    transition: background 0.2s, color 0.2s;
+  }
+
+  .mobile-nav-links a:hover {
+    background: rgba(255,255,255,0.05);
+    color: white;
   }
 
   .nav-links a {
@@ -327,7 +381,7 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 16px;
+    gap: 36px;
     cursor: pointer;
     transition: transform 0.3s;
   }
@@ -368,7 +422,7 @@
   .biz-3 { background: url('https://images.unsplash.com/photo-1501854140801-50d01698950b?w=400&q=70') center/cover; }
 
   .biz-name {
-    font-size: 14px;
+    font-size: 16px;
     font-weight: 500;
     color: var(--text-dark);
     letter-spacing: 0.5px;
@@ -557,6 +611,25 @@
     opacity: 0.45;
   }
 
+  /* ── MOBILE RESPONSIVE ── */
+  @media (max-width: 768px) {
+    nav {
+      padding: 0 20px;
+    }
+
+    .nav-links {
+      display: none;
+    }
+
+    .mobile-menu-btn {
+      display: block;
+    }
+
+    .mobile-menu.active {
+      transform: translateY(0);
+    }
+  }
+
   /* ── SCROLL REVEAL ── */
   .reveal {
     opacity: 0;
@@ -611,8 +684,16 @@
     <h1>사람, 환경, 미래를<br>생각합니다</h1>
     <p>People · Environment · Future</p>
   </div>
-  <button class="hero-nav hero-prev" aria-label="이전 슬라이드">‹</button>
-  <button class="hero-nav hero-next" aria-label="다음 슬라이드">›</button>
+  <button class="hero-nav hero-prev" aria-label="이전 슬라이드">
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M15.8346 9.99996H4.16797M4.16797 9.99996L10.0013 15.8333M4.16797 9.99996L10.0013 4.16663" stroke="#A4A7AE" stroke-width="1.66667" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+  </button>
+  <button class="hero-nav hero-next" aria-label="다음 슬라이드">
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M4.16602 9.99996H15.8327M15.8327 9.99996L9.99935 15.8333M15.8327 9.99996L9.99935 4.16663" stroke="#A4A7AE" stroke-width="1.66667" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+  </button>
   <div class="hero-dots"></div>
   <div class="hero-scroll">scroll</div>
 </section>
@@ -637,25 +718,25 @@
   <div class="business-grid reveal">
     <div class="biz-card">
       <div class="biz-icon biz-0">
-        <div class="biz-icon-inner">❄️</div>
+        <div class="biz-icon-inner"></div>
       </div>
       <span class="biz-name">냉매 사업부</span>
     </div>
     <div class="biz-card">
       <div class="biz-icon biz-1">
-        <div class="biz-icon-inner">🧊</div>
+        <div class="biz-icon-inner"></div>
       </div>
       <span class="biz-name">발포 사업부</span>
     </div>
     <div class="biz-card">
       <div class="biz-icon biz-2">
-        <div class="biz-icon-inner">🧯</div>
+        <div class="biz-icon-inner"></div>
       </div>
       <span class="biz-name">소화 사업부</span>
     </div>
     <div class="biz-card">
       <div class="biz-icon biz-3">
-        <div class="biz-icon-inner">🌿</div>
+        <div class="biz-icon-inner"></div>
       </div>
       <span class="biz-name">환경 사업부</span>
     </div>
