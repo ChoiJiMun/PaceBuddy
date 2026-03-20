@@ -675,7 +675,18 @@
     <li><a href="#identity">사업분야</a></li>
     <li><a href="#partners">협력기업</a></li>
   </ul>
+  <button class="mobile-menu-btn" aria-label="메뉴 열기">☰</button>
 </nav>
+
+<!-- Mobile Menu -->
+<div class="mobile-menu">
+  <ul class="mobile-nav-links">
+    <li><a href="#about">회사소개</a></li>
+    <li><a href="#business">제품소개</a></li>
+    <li><a href="#identity">사업분야</a></li>
+    <li><a href="#partners">협력기업</a></li>
+  </ul>
+</div>
 
 <!-- HERO -->
 <section id="hero">
@@ -886,6 +897,36 @@
 
   prevBtn.addEventListener('click', () => setSlide(currentSlide - 1));
   nextBtn.addEventListener('click', () => setSlide(currentSlide + 1));
+
+  // Mobile menu toggle
+  const mobileMenuBtn = document.querySelector('.mobile-menu-btn');
+  const mobileMenu = document.querySelector('.mobile-menu');
+  const mobileNavLinks = document.querySelectorAll('.mobile-nav-links a');
+
+  mobileMenuBtn.addEventListener('click', () => {
+    mobileMenu.classList.toggle('active');
+    const isOpen = mobileMenu.classList.contains('active');
+    mobileMenuBtn.setAttribute('aria-label', isOpen ? '메뉴 닫기' : '메뉴 열기');
+    mobileMenuBtn.textContent = isOpen ? '✕' : '☰';
+  });
+
+  // Close mobile menu when clicking on links
+  mobileNavLinks.forEach(link => {
+    link.addEventListener('click', () => {
+      mobileMenu.classList.remove('active');
+      mobileMenuBtn.setAttribute('aria-label', '메뉴 열기');
+      mobileMenuBtn.textContent = '☰';
+    });
+  });
+
+  // Close mobile menu when clicking outside
+  document.addEventListener('click', (e) => {
+    if (!mobileMenu.contains(e.target) && !mobileMenuBtn.contains(e.target)) {
+      mobileMenu.classList.remove('active');
+      mobileMenuBtn.setAttribute('aria-label', '메뉴 열기');
+      mobileMenuBtn.textContent = '☰';
+    }
+  });
 
   async function loadHeroSlides() {
     try {
