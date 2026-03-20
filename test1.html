@@ -34,6 +34,12 @@
     position: fixed;
     top: 0; left: 0; right: 0;
     z-index: 1000;
+    background: rgba(10, 34, 64, 0.85);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+  }
+
+  .nav-container {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -41,9 +47,6 @@
     margin: 0 auto;
     padding: 0 60px;
     height: 64px;
-    background: rgba(10, 34, 64, 0.85);
-    backdrop-filter: blur(12px);
-    border-bottom: 1px solid rgba(255,255,255,0.08);
   }
 
   .logo {
@@ -613,7 +616,7 @@
 
   /* ── MOBILE RESPONSIVE ── */
   @media (max-width: 768px) {
-    nav {
+    .nav-container {
       padding: 0 20px;
     }
 
@@ -665,17 +668,19 @@
 
 <!-- NAV -->
 <nav>
-  <a href="#" class="logo">
-    <div class="logo-icon">🌊</div>
-    한강화학(주)
-  </a>
-  <ul class="nav-links">
-    <li><a href="#about">회사소개</a></li>
-    <li><a href="#business">제품소개</a></li>
-    <li><a href="#identity">사업분야</a></li>
-    <li><a href="#partners">협력기업</a></li>
-  </ul>
-  <button class="mobile-menu-btn" aria-label="메뉴 열기">☰</button>
+  <div class="nav-container">
+    <a href="#" class="logo">
+      <div class="logo-icon">🌊</div>
+      한강화학(주)
+    </a>
+    <ul class="nav-links">
+      <li><a href="#about">회사소개</a></li>
+      <li><a href="#business">제품소개</a></li>
+      <li><a href="#identity">사업분야</a></li>
+      <li><a href="#partners">협력기업</a></li>
+    </ul>
+    <button class="mobile-menu-btn" aria-label="메뉴 열기">☰</button>
+  </div>
 </nav>
 
 <!-- Mobile Menu -->
