@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pacebuddy — Cute status buddy!</title>
+  <meta name="description" content="귀여운 버디와 함께하는 Mac 시스템 모니터링 앱. CPU, 메모리, 배터리를 메뉴바에서 한눈에!" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700;900&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0a0a0a;
+      --fg: #f0ede8;
+      --accent: #a855f7;
+      --accent-dim: rgba(168,85,247,0.12);
+      --accent-border: rgba(168,85,247,0.25);
+      --muted: rgba(240,237,232,0.5);
+      --card-bg: rgba(255,255,255,0.03);
+      --card-border: rgba(255,255,255,0.07);
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--fg);
+      font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, sans-serif;
+      overflow-x: hidden;
+    }
+
+    /* NAV */
+    nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 20px 40px;
+      transition: background 0.3s ease, backdrop-filter 0.3s;
+    }
+    nav.scrolled {
+      background: rgba(10,10,10,0.85);
+      backdrop-filter: blur(12px);
+    }
+    .nav-logo {
+      font-size: 17px;
+      font-weight: 900;
+      letter-spacing: -0.02em;
+    }
+    .nav-cta {
+      font-size: 14px;
+      font-weight: 700;
+      color: #0a0a0a;
+      background: var(--fg);
+      padding: 8px 18px;
+      border-radius: 100px;
+      text-decoration: none;
+      transition: opacity 0.2s;
+    }
+    .nav-cta:hover { opacity: 0.85; }
+
+    /* HERO */
+    .hero {
+      position: relative;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      overflow: hidden;
+    }
+    .hero-bg {
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse 80% 60% at 50% 40%, rgba(168,85,247,0.12) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .orb {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(80px);
+      pointer-events: none;
+    }
+    .orb1 {
+      width: 400px; height: 400px;
+      background: rgba(168,85,247,0.1);
+      top: 10%; left: -10%;
+      animation: float 8s ease-in-out infinite;
+    }
+    .orb2 {
+      width: 300px; height: 300px;
+      background: rgba(100,180,255,0.06);
+      bottom: 10%; right: -5%;
+      animation: float 10s ease-in-out infinite reverse;
+    }
+    .hero-inner {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 24px;
+      padding: 120px 24px 80px;
+    }
+    .buddy-badge {
+      width: 80px; height: 80px;
+      border-radius: 24px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(8px);
+      animation: fadeUp 0.8s ease both;
+    }
+    .buddy-emoji {
+      font-size: 40px;
+      line-height: 1;
+      transition: opacity 0.2s;
+    }
+    h1 {
+      font-size: clamp(40px, 7vw, 76px);
+      font-weight: 900;
+      line-height: 1.1;
+      letter-spacing: -0.03em;
+      animation: fadeUp 0.8s ease 0.15s both;
+    }
+    h1 .accent { color: var(--accent); }
+    .hero-sub {
+      font-size: clamp(16px, 2vw, 19px);
+      color: var(--muted);
+      line-height: 1.7;
+      animation: fadeUp 0.8s ease 0.3s both;
+    }
+    .hero-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--fg);
+      color: #0a0a0a;
+      font-size: 16px;
+      font-weight: 700;
+      padding: 16px 28px;
+      border-radius: 100px;
+      text-decoration: none;
+      letter-spacing: -0.01em;
+      transition: transform 0.2s, box-shadow 0.2s;
+      box-shadow: 0 0 40px rgba(168,85,247,0.2);
+      animation: fadeUp 0.8s ease 0.45s both;
+    }
+    .hero-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 40px rgba(168,85,247,0.35);
+    }
+    .hero-note {
+      font-size: 13px;
+      color: rgba(240,237,232,0.3);
+      animation: fadeUp 0.8s ease 0.45s both;
+    }
+
+    /* FEATURES */
+    .features-section {
+      padding: 100px 24px;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+    .section-title {
+      text-align: center;
+      margin-bottom: 60px;
+    }
+    .tag {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      color: var(--accent);
+      background: var(--accent-dim);
+      border: 1px solid var(--accent-border);
+      padding: 5px 12px;
+      border-radius: 100px;
+      margin-bottom: 16px;
+    }
+    h2 {
+      font-size: clamp(28px, 4vw, 46px);
+      font-weight: 900;
+      letter-spacing: -0.03em;
+      line-height: 1.15;
+    }
+    .feature-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 20px;
+    }
+    .feature-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 20px;
+      padding: 32px 28px;
+      opacity: 0;
+      transform: translateY(40px);
+      transition: opacity 0.55s ease, transform 0.55s ease, border-color 0.2s;
+    }
+    .feature-card.visible { opacity: 1; transform: translateY(0); }
+    .feature-card:hover { border-color: var(--accent-border); }
+    .feature-icon { font-size: 32px; display: block; margin-bottom: 16px; }
+    h3 {
+      font-size: 17px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 10px;
+    }
+    .feature-desc {
+      font-size: 14px;
+      color: var(--muted);
+      line-height: 1.7;
+    }
+
+    /* CTA */
+    .cta-section {
+      padding: 80px 24px 120px;
+      text-align: center;
+    }
+    .cta-inner {
+      max-width: 600px;
+      margin: 0 auto;
+      opacity: 0;
+      transform: translateY(40px);
+      transition: all 0.7s ease;
+    }
+    .cta-inner.visible { opacity: 1; transform: translateY(0); }
+    .cta-buddy-row {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      margin-bottom: 28px;
+    }
+    .cta-buddy {
+      font-size: 28px;
+      display: inline-block;
+      animation: bounce 2s ease-in-out infinite;
+    }
+    .cta-title {
+      font-size: clamp(28px, 4vw, 44px);
+      font-weight: 900;
+      letter-spacing: -0.03em;
+      margin-bottom: 16px;
+    }
+    .cta-sub {
+      font-size: 16px;
+      color: var(--muted);
+      line-height: 1.7;
+      margin-bottom: 36px;
+    }
+    .cta-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--accent);
+      color: #fff;
+      font-size: 16px;
+      font-weight: 700;
+      padding: 16px 28px;
+      border-radius: 100px;
+      text-decoration: none;
+      transition: transform 0.2s, box-shadow 0.2s;
+      box-shadow: 0 8px 40px rgba(168,85,247,0.3);
+    }
+    .cta-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 40px rgba(168,85,247,0.5);
+    }
+
+    /* FOOTER */
+    footer {
+      border-top: 1px solid rgba(255,255,255,0.06);
+      padding: 28px 40px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .footer-logo { font-size: 15px; font-weight: 900; }
+    .footer-copy { font-size: 13px; color: rgba(240,237,232,0.3); }
+
+    /* ANIMATIONS */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(28px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-20px); }
+    }
+    @keyframes bounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-8px); }
+    }
+
+    @media (max-width: 600px) {
+      nav { padding: 16px 20px; }
+      footer { padding: 20px; flex-direction: column; align-items: flex-start; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- NAV -->
+  <nav id="nav">
+    <span class="nav-logo">pacebuddy</span>
+    <a href="https://apps.apple.com/kr/app/pacebuddy/id6749213835?mt=12" target="_blank" class="nav-cta">무료 다운로드</a>
+  </nav>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero-bg"></div>
+    <div class="orb orb1"></div>
+    <div class="orb orb2"></div>
+    <div class="hero-inner">
+      <div class="buddy-badge">
+        <span class="buddy-emoji" id="buddy">🐌</span>
+      </div>
+      <h1>당신의 귀여운<br /><span class="accent">Mac 가디언</span></h1>
+      <p class="hero-sub">
+        메뉴바에 상주하는 귀여운 버디가<br />
+        CPU, 메모리, 배터리를 실시간으로 알려드려요
+      </p>
+      <a href="https://apps.apple.com/kr/app/pacebuddy/id6749213835?mt=12" target="_blank" class="hero-btn">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
+        </svg>
+        App Store에서 무료 다운로드
+      </a>
+      <p class="hero-note">macOS 13.5 이상 · 무료 · 앱 내 구입 있음</p>
+    </div>
+  </section>
+
+  <!-- FEATURES -->
+  <section class="features-section">
+    <div class="section-title">
+      <div class="tag">FEATURES</div>
+      <h2>작지만 강력한<br />기능들</h2>
+    </div>
+    <div class="feature-grid">
+      <div class="feature-card" style="transition-delay:0s">
+        <span class="feature-icon">⚡</span>
+        <h3>실시간 시스템 모니터링</h3>
+        <p class="feature-desc">CPU, 메모리, 배터리, 네트워크를 메뉴바에서 한눈에 확인</p>
+      </div>
+      <div class="feature-card" style="transition-delay:0.1s">
+        <span class="feature-icon">🎨</span>
+        <h3>나만의 버디 선택</h3>
+        <p class="feature-desc">달팽이, 고양이, 드래곤 등 30개 이상의 캐릭터 중 골라보세요</p>
+      </div>
+      <div class="feature-card" style="transition-delay:0.2s">
+        <span class="feature-icon">✨</span>
+        <h3>CPU 반응 애니메이션</h3>
+        <p class="feature-desc">컴퓨터가 바빠질수록 버디도 함께 신나게 달립니다</p>
+      </div>
+      <div class="feature-card" style="transition-delay:0.3s">
+        <span class="feature-icon">🎮</span>
+        <h3>미니게임 포함</h3>
+        <p class="feature-desc">버디와 함께하는 미니게임으로 작업 중 잠깐의 휴식을</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="cta-section">
+    <div class="cta-inner" id="cta">
+      <div class="cta-buddy-row">
+        <span class="cta-buddy" style="animation-delay:0s">🐌</span>
+        <span class="cta-buddy" style="animation-delay:0.15s">🐱</span>
+        <span class="cta-buddy" style="animation-delay:0.3s">🐶</span>
+        <span class="cta-buddy" style="animation-delay:0.45s">🛹</span>
+        <span class="cta-buddy" style="animation-delay:0.6s">🐉</span>
+      </div>
+      <h2 class="cta-title">지금 바로 만나보세요</h2>
+      <p class="cta-sub">일할수록 빨라지고, 바쁠수록 즐거워지는<br />나만의 Mac 버디</p>
+      <a href="https://apps.apple.com/kr/app/pacebuddy/id6749213835?mt=12" target="_blank" class="cta-btn">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
+        </svg>
+        App Store에서 무료 다운로드
+      </a>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    <span class="footer-logo">pacebuddy</span>
+    <span class="footer-copy">© 2025 jimun choi · Mac 전용 · 유틸리티</span>
+  </footer>
+
+  <script>
+    // Nav scroll
+    const nav = document.getElementById('nav');
+    window.addEventListener('scroll', () => {
+      nav.classList.toggle('scrolled', window.scrollY > 40);
+    });
+
+    // Buddy rotation
+    const buddies = ['🐌','🐱','🐶','🛹','🐉','💃','🚴','🏃'];
+    let i = 0;
+    setInterval(() => {
+      i = (i + 1) % buddies.length;
+      document.getElementById('buddy').textContent = buddies[i];
+    }, 800);
+
+    // Scroll reveal
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+    }, { threshold: 0.15 });
+    document.querySelectorAll('.feature-card, .cta-inner').forEach(el => observer.observe(el));
+  </script>
+</body>
+</html>
